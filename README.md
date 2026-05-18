@@ -1,0 +1,1 @@
+# hangul_license_diff
