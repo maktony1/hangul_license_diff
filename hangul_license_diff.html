@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한글 라이센스 사용자 변경 비교 도구</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f5f5f3;color:#1a1a1a;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:32px 20px}
+header{margin-bottom:28px}
+header h1{font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+header p{font-size:13px;color:#888}
+.card{background:#fff;border:1px solid #e8e8e6;border-radius:10px;padding:20px;margin-bottom:16px}
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.input-label{font-size:12px;font-weight:600;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+textarea{width:100%;height:160px;padding:10px 12px;border:1px solid #e0e0de;border-radius:7px;background:#fafaf8;color:#1a1a1a;font-size:12px;font-family:inherit;resize:vertical}
+textarea:focus{outline:none;border-color:#999;background:#fff}
+.btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btn-primary{padding:9px 20px;border:none;border-radius:7px;background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-primary:hover{opacity:0.82}
+.btn-secondary{padding:9px 16px;border:1px solid #d0d0ce;border-radius:7px;background:#fff;color:#666;font-size:13px;cursor:pointer;font-family:inherit}
+.btn-secondary:hover{background:#f5f5f3}
+.hint{font-size:12px;color:#888;line-height:1.7;margin-bottom:14px}
+.hint code{background:#f0f0ee;padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace}
+#results{display:none}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:#fff;border:1px solid #e8e8e6;border-radius:8px;padding:12px 14px;text-align:center}
+.stat-card .num{font-size:22px;font-weight:700;color:#1a1a1a}
+.stat-card .lbl{font-size:11px;color:#888;margin-top:2px}
+.stat-card.green .num{color:#2d7a2d}
+.stat-card.red .num{color:#c0392b}
+.tabs{display:flex;gap:0;border-bottom:1px solid #e8e8e6;margin-bottom:16px}
+.tab{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;color:#aaa;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+.panel{display:none}.panel.active{display:block}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.filter-btn{padding:4px 12px;border:1px solid #d8d8d6;border-radius:20px;font-size:12px;cursor:pointer;background:#fff;color:#666;font-family:inherit}
+.filter-btn.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+/* diff cards */
+.diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.diff-card{border:1px solid #e8e8e6;border-radius:10px;overflow:hidden}
+.diff-card-header{padding:10px 14px;font-size:13px;font-weight:600;display:flex;align-items:center}
+.diff-card-header.added{background:#eef7ee;color:#2d7a2d}
+.diff-card-header.removed{background:#fdf0ef;color:#c0392b}
+.diff-count{font-size:18px;font-weight:700;margin-left:auto}
+.diff-list{max-height:300px;overflow-y:auto}
+.diff-item{padding:7px 14px;border-top:1px solid #f0f0ee;font-size:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.diff-item:hover{background:#fafaf8}
+.person-name{font-weight:600;color:#1a1a1a;white-space:nowrap}
+.dept-name{color:#999;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-badge{font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;font-weight:600}
+.sw-2018{background:#ede9fc;color:#5b3fc8}
+.sw-2014{background:#e6f1fb;color:#1a5fa8}
+.sw-2010{background:#e3f4ec;color:#1a6b3c}
+.sw-neo{background:#fff3e0;color:#b35c00}
+.sw-section-title{font-size:11px;font-weight:600;color:#999;padding:5px 14px;background:#fafaf8;border-top:1px solid #f0f0ee;letter-spacing:0.4px}
+.empty{padding:24px;text-align:center;color:#bbb;font-size:13px}
+/* 좌우 비교 */
+.compare-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.search-input{padding:7px 11px;border:1px solid #d8d8d6;border-radius:7px;background:#fff;color:#1a1a1a;font-size:13px;width:180px;font-family:inherit}
+.search-input:focus{outline:none;border-color:#999}
+.compare-wrap{border:1px solid #e8e8e6;border-radius:10px;overflow:hidden}
+.compare-head{display:grid;grid-template-columns:1fr 1px 1fr;background:#fff;border-bottom:2px solid #e8e8e6}
+.compare-head-cell{padding:10px 16px;font-size:12px;font-weight:700;letter-spacing:0.3px;display:flex;align-items:center;justify-content:space-between}
+.compare-head-cell.prev-h{background:#fdf3f2;color:#c0392b}
+.compare-head-cell.next-h{background:#eef7ee;color:#2d7a2d}
+.compare-head-divider{background:#e8e8e6}
+.compare-scroll{max-height:640px;overflow-y:auto}
+/* 각 행 */
+.cmp-row-wrap{display:grid;grid-template-columns:1fr 1px 1fr;border-bottom:1px solid #f4f4f2}
+.cmp-row-wrap:last-child{border-bottom:none}
+.cmp-row-divider{background:#f0f0ee}
+.cmp-cell{padding:7px 12px;font-size:12px;display:flex;align-items:center;gap:0;min-height:38px}
+.cmp-cell:hover{background:#f8f8f6}
+.cmp-cell.cell-removed{background:#fdecea}
+.cmp-cell.cell-added{background:#e8f5e9}
+.cmp-cell.cell-empty{background:#fafaf8}
+/* 셀 내부 레이아웃 */
+.cmp-num{font-size:10px;color:#ccc;width:22px;flex-shrink:0;text-align:right;margin-right:8px}
+.cmp-inner{display:flex;flex-direction:column;flex:1;min-width:0;gap:2px}
+.cmp-name{font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-sub{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.cmp-dept{color:#aaa;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.cmp-tag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;flex-shrink:0;margin-left:auto;align-self:center}
+.tag-removed{background:#e53935;color:#fff}
+.tag-added{background:#2e7d32;color:#fff}
+/* summary */
+.lic-inputs{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:14px;background:#fafaf8;border-radius:8px;border:1px solid #eee}
+.lic-inp-wrap{display:flex;align-items:center;gap:6px}
+.lic-inp-wrap label{font-size:12px;color:#666;white-space:nowrap;font-weight:600}
+.lic-inp-wrap input{width:64px;height:30px;padding:0 8px;font-size:13px;border:1px solid #d8d8d6;border-radius:6px;background:#fff;color:#1a1a1a;font-family:inherit}
+.summary-table{width:100%;border-collapse:collapse;font-size:13px}
+.summary-table th{text-align:center;padding:9px 14px;background:#fafaf8;border:1px solid #e8e8e6;font-weight:600;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.4px}
+.summary-table td{text-align:center;padding:9px 14px;border:1px solid #e8e8e6;color:#1a1a1a}
+.summary-table td:first-child{text-align:left;font-weight:600}
+.summary-table tr.total td{background:#fafaf8;font-weight:700}
+.pos{color:#2d7a2d;font-weight:600}.neg{color:#c0392b;font-weight:600}.zero{color:#bbb}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>한글 라이센스 사용자 변경 비교</h1>
+    <p>이전달 / 이번달 데이터를 붙여넣으면 추가·삭제·유지 인원을 자동으로 분석합니다.</p>
+  </header>
+
+  <div class="card">
+    <div class="hint">
+      왼쪽: <strong>기존(이전달)</strong> / 오른쪽: <strong>신규(이번달)</strong> 데이터 붙여넣기<br>
+      ① <code>성명(사번) 탭 부서 탭 소프트웨어명</code> &nbsp;② <code>번호 탭 부서 탭 사용자</code> &nbsp;③ <code>홍길동(000000)</code> 이름만 나열 — 세 형식 모두 지원
+    </div>
+    <div class="input-grid">
+      <div>
+        <div class="input-label">기존 데이터 (이전달)</div>
+        <textarea id="prev" placeholder="이전달 데이터 붙여넣기&#10;&#10;예) 홍길동(000000)  OO팀  한글 2010  1&#10;또는 탭 구분 엑셀 데이터"></textarea>
+      </div>
+      <div>
+        <div class="input-label">신규 데이터 (이번달)</div>
+        <textarea id="next" placeholder="이번달 데이터 붙여넣기&#10;&#10;예) 홍길동(000000)  OO팀  한글 2010  1&#10;또는 탭 구분 엑셀 데이터"></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="compare()">비교 실행</button>
+      <button class="btn-secondary" onclick="loadSample()">샘플 테스트</button>
+      <button class="btn-secondary" onclick="reset()">초기화</button>
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="stat-row" id="stat-row"></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 20px 0">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('diff')">변경 내역</button>
+          <button class="tab" onclick="switchTab('full')">전체 리스트 비교</button>
+          <button class="tab" onclick="switchTab('summary')">라이센스 현황</button>
+        </div>
+      </div>
+      <div style="padding:16px 20px 20px">
+
+        <div class="panel active" id="panel-diff">
+          <div class="filter-bar" id="diff-filters"></div>
+          <div class="diff-grid" id="diff-grid"></div>
+        </div>
+
+        <div class="panel" id="panel-full">
+          <div class="compare-toolbar">
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="full-filters"></div>
+            <input class="search-input" id="search" placeholder="이름·부서 검색..." oninput="renderFull()">
+          </div>
+          <div class="compare-wrap">
+            <div class="compare-head">
+              <div class="compare-head-cell prev-h" id="head-prev"></div>
+              <div class="compare-head-divider"></div>
+              <div class="compare-head-cell next-h" id="head-next"></div>
+            </div>
+            <div class="compare-scroll" id="compare-scroll"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="panel-summary">
+          <div class="lic-inputs" id="license-inputs"></div>
+          <table class="summary-table" id="summary-table"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LIC_DEF={'한글 2018':3,'한글 NEO':2,'한글 2014':13,'한글 2010':146};
+let S={activeSW:'ALL',fullSW:'ALL',licenses:{...LIC_DEF},added:[],removed:[],kept:[],prev:[],next:[],swList:[]};
+
+function parseRows(text){
+  const rows=[],lines=text.split('\n');
+  let curSW='';
+  const hasTab=lines.some(l=>l.includes('\t'));
+  for(const line of lines){
+    const raw=line.trim();if(!raw)continue;
+    if(!hasTab){
+      if(/소계|^계$/.test(raw))continue;
+      const idM=raw.match(/\((\d+)\)/);
+      if(!idM)continue;
+      rows.push({id:idM[1],name:raw,dept:'',sw:''});
+      continue;
+    }
+    const p=raw.split(/\t+/);
+    const p0=p[0]?.trim()||'',p1=p[1]?.trim()||'',p2=p[2]?.trim()||'';
+    // 소프트웨어 헤더 행: "한글 2010\t1\t부서\t이름" 형식
+    if(/^한글/.test(p0)&&/^\d+$/.test(p1)){
+      curSW=normSW(p0);
+      // 이 행 자체도 데이터 행
+      const name=p[3]?.trim()||''; const dept=p2;
+      if(name&&dept){
+        const idM=name.match(/\((\d+)\)/);
+        rows.push({id:idM?idM[1]:name,name,dept,sw:curSW});
+      }
+      continue;
+    }
+    if(/^한글/.test(p0)&&p.length<=2){curSW=normSW(p0);continue;}
+    if(!p0||p0==='성명'||p0==='번호'||/소계|^계$/.test(p0))continue;
+    let name='',dept='',sw='';
+    if(/^\d+$/.test(p0)){dept=p1;name=p2;sw=curSW;}
+    else{name=p0;dept=p1;sw=normSW(p2)||curSW;}
+    if(!name)continue;
+    const idM=name.match(/\((\d+)\)/);
+    const id=idM?idM[1]:name;
+    rows.push({id,name,dept,sw});
+  }
+  return rows;
+}
+
+function normSW(s){
+  if(!s)return'';s=s.trim();
+  if(/2018/.test(s))return'한글 2018';
+  if(/NEO|neo/i.test(s))return'한글 NEO';
+  if(/2014/.test(s))return'한글 2014';
+  if(/2010/.test(s))return'한글 2010';
+  if(/2022/.test(s))return'한글 2022';
+  if(/2020/.test(s))return'한글 2020';
+  return s;
+}
+
+function getKey(r){return r.id+'|'+r.sw;}
+
+function compare(){
+  const pt=document.getElementById('prev').value,nt=document.getElementById('next').value;
+  if(!pt.trim()||!nt.trim()){alert('두 칸 모두 입력하세요.');return;}
+  S.prev=parseRows(pt);S.next=parseRows(nt);
+  const pm={},nm={};
+  for(const r of S.prev)pm[getKey(r)]=r;
+  for(const r of S.next)nm[getKey(r)]=r;
+  S.added=S.next.filter(r=>!pm[getKey(r)]);
+  S.removed=S.prev.filter(r=>!nm[getKey(r)]);
+  S.kept=S.next.filter(r=>!!pm[getKey(r)]);
+  const swSet=new Set([...S.prev,...S.next].map(r=>r.sw).filter(Boolean));
+  S.swList=[...swSet].sort();
+  S.activeSW='ALL';S.fullSW='ALL';
+  renderStats();
+  renderFilters('diff-filters','activeSW',renderDiff);
+  renderFilters('full-filters','fullSW',renderFull);
+  renderDiff();renderFull();renderSummarySetup();
+  document.getElementById('results').style.display='block';
+  document.getElementById('search').value='';
+}
+
+function renderStats(){
+  document.getElementById('stat-row').innerHTML=`
+    <div class="stat-card"><div class="num">${S.prev.length}</div><div class="lbl">이전달</div></div>
+    <div class="stat-card"><div class="num">${S.next.length}</div><div class="lbl">이번달</div></div>
+    <div class="stat-card green"><div class="num">+${S.added.length}</div><div class="lbl">신규 추가</div></div>
+    <div class="stat-card red"><div class="num">-${S.removed.length}</div><div class="lbl">삭제 제외</div></div>
+    <div class="stat-card"><div class="num">${S.kept.length}</div><div class="lbl">유지</div></div>`;
+}
+
+function renderFilters(id,key,cb){
+  const f=document.getElementById(id);f.innerHTML='';
+  [['전체','ALL'],...S.swList.map(s=>[s,s])].forEach(([label,val])=>{
+    const b=document.createElement('button');
+    b.className='filter-btn'+(S[key]===val?' on':'');
+    b.textContent=label;b.dataset.val=val;
+    b.onclick=()=>{S[key]=val;document.querySelectorAll('#'+id+' .filter-btn').forEach(x=>x.classList.toggle('on',x.dataset.val===val));cb();};
+    f.appendChild(b);
+  });
+}
+
+function swClass(sw){
+  if(/2018/.test(sw))return'sw-2018';
+  if(/NEO/i.test(sw))return'sw-neo';
+  if(/2014/.test(sw))return'sw-2014';
+  return'sw-2010';
+}
+
+function renderDiff(){
+  const f=S.activeSW;
+  const added=f==='ALL'?S.added:S.added.filter(r=>r.sw===f);
+  const removed=f==='ALL'?S.removed:S.removed.filter(r=>r.sw===f);
+  const grid=document.getElementById('diff-grid');grid.innerHTML='';
+  grid.appendChild(makeCard('added','신규 추가',added,'추가된 사용자 없음'));
+  grid.appendChild(makeCard('removed','삭제 / 제외',removed,'삭제된 사용자 없음'));
+}
+
+function makeCard(type,label,rows,emptyMsg){
+  const card=document.createElement('div');card.className='diff-card';
+  card.innerHTML=`<div class="diff-card-header ${type}"><span>${type==='added'?'+ ':'- '}${label}</span><span class="diff-count">${rows.length}명</span></div>`;
+  const list=document.createElement('div');list.className='diff-list';
+  if(!rows.length){list.innerHTML=`<div class="empty">${emptyMsg}</div>`;}
+  else{
+    const bySW={};
+    for(const r of rows)(bySW[r.sw||'기타']=bySW[r.sw||'기타']||[]).push(r);
+    for(const [sw,rlist] of Object.entries(bySW)){
+      if(S.activeSW==='ALL'){const t=document.createElement('div');t.className='sw-section-title';t.textContent=sw;list.appendChild(t);}
+      for(const r of rlist){
+        const item=document.createElement('div');item.className='diff-item';
+        const swHtml=S.activeSW==='ALL'&&r.sw?`<span class="sw-badge ${swClass(r.sw)}">${r.sw}</span>`:'';
+        item.innerHTML=`<span class="person-name">${r.name}</span>${r.dept?`<span class="dept-name">${r.dept}</span>`:''}${swHtml}`;
+        list.appendChild(item);
+      }
+    }
+  }
+  card.appendChild(list);return card;
+}
+
+function sortRows(rows){
+  return [...rows].sort((a,b)=>{
+    const swO={'한글 2018':0,'한글 NEO':1,'한글 2014':2,'한글 2010':3};
+    const sa=swO[a.sw]??9,sb=swO[b.sw]??9;
+    if(sa!==sb)return sa-sb;
+    return a.name.localeCompare(b.name,'ko');
+  });
+}
+
+function makeCmpCell(r, lineNum, side){
+  const cell=document.createElement('div');
+  if(!r){cell.className='cmp-cell cell-empty';return cell;}
+  const isChanged=(side==='left'&&r.status==='removed')||(side==='right'&&r.status==='added');
+  cell.className='cmp-cell'+(isChanged?(side==='left'?' cell-removed':' cell-added'):'');
+  const swHtml=r.sw?`<span class="sw-badge ${swClass(r.sw)}">${r.sw}</span>`:'';
+  const tagHtml=r.status==='removed'?`<span class="cmp-tag tag-removed">삭제</span>`:r.status==='added'?`<span class="cmp-tag tag-added">신규</span>`:'';
+  cell.innerHTML=`
+    <span class="cmp-num">${lineNum}</span>
+    <div class="cmp-inner">
+      <span class="cmp-name">${r.name}</span>
+      <div class="cmp-sub">
+        ${r.dept?`<span class="cmp-dept">${r.dept}</span>`:''}
+        ${swHtml}
+      </div>
+    </div>
+    ${tagHtml}`;
+  return cell;
+}
+
+function renderFull(){
+  const q=(document.getElementById('search').value||'').trim().toLowerCase();
+  const sf=S.fullSW;
+  const removedKeys=new Set(S.removed.map(getKey));
+  const addedKeys=new Set(S.added.map(getKey));
+
+  let prevRows=sortRows(S.prev.map(r=>({...r,status:removedKeys.has(getKey(r))?'removed':'kept'})));
+  let nextRows=sortRows(S.next.map(r=>({...r,status:addedKeys.has(getKey(r))?'added':'kept'})));
+
+  if(sf!=='ALL'){prevRows=prevRows.filter(r=>r.sw===sf);nextRows=nextRows.filter(r=>r.sw===sf);}
+  if(q){
+    prevRows=prevRows.filter(r=>r.name.toLowerCase().includes(q)||r.dept.toLowerCase().includes(q));
+    nextRows=nextRows.filter(r=>r.name.toLowerCase().includes(q)||r.dept.toLowerCase().includes(q));
+  }
+
+  const prevRemCnt=prevRows.filter(r=>r.status==='removed').length;
+  const nextAddCnt=nextRows.filter(r=>r.status==='added').length;
+  document.getElementById('head-prev').innerHTML=
+    `<span>기존 (이전달) &nbsp;${prevRows.length}명</span><span style="font-weight:700;font-size:13px;color:#c0392b">삭제 ${prevRemCnt}명</span>`;
+  document.getElementById('head-next').innerHTML=
+    `<span>신규 (이번달) &nbsp;${nextRows.length}명</span><span style="font-weight:700;font-size:13px;color:#2d7a2d">추가 ${nextAddCnt}명</span>`;
+
+  // 줄 맞춤 알고리즘
+  const alignedL=[], alignedR=[];
+  let pi=0,ni=0;
+  while(pi<prevRows.length||ni<nextRows.length){
+    const p=prevRows[pi],n=nextRows[ni];
+    if(!p){alignedL.push(null);alignedR.push(n);ni++;}
+    else if(!n){alignedL.push(p);alignedR.push(null);pi++;}
+    else if(p.status==='removed'&&n.status==='added'){alignedL.push(p);alignedR.push(n);pi++;ni++;}
+    else if(p.status==='removed'){alignedL.push(p);alignedR.push(null);pi++;}
+    else if(n.status==='added'){alignedL.push(null);alignedR.push(n);ni++;}
+    else{alignedL.push(p);alignedR.push(n);pi++;ni++;}
+  }
+
+  const scroll=document.getElementById('compare-scroll');
+  scroll.innerHTML='';
+  let lineNum=0;
+  for(let i=0;i<alignedL.length;i++){
+    lineNum++;
+    const wrap=document.createElement('div');
+    wrap.className='cmp-row-wrap';
+    const divEl=document.createElement('div');
+    divEl.className='cmp-row-divider';
+    wrap.appendChild(makeCmpCell(alignedL[i],lineNum,'left'));
+    wrap.appendChild(divEl);
+    wrap.appendChild(makeCmpCell(alignedR[i],lineNum,'right'));
+    scroll.appendChild(wrap);
+  }
+  if(!alignedL.length)scroll.innerHTML=`<div class="empty">데이터 없음</div>`;
+}
+
+function renderSummarySetup(){
+  const li=document.getElementById('license-inputs');li.innerHTML='';
+  const swOrder=['한글 2018','한글 NEO','한글 2014','한글 2010'];
+  const swInData=new Set([...S.prev,...S.next].map(r=>r.sw));
+  const rows=swOrder.filter(s=>swInData.has(s)||S.licenses[s]);
+  for(const sw of rows){
+    const wrap=document.createElement('div');wrap.className='lic-inp-wrap';
+    const lbl=document.createElement('label');lbl.textContent=sw+' 라이센스:';
+    const inp=document.createElement('input');
+    inp.type='number';inp.value=S.licenses[sw]||0;inp.min=0;inp.dataset.sw=sw;
+    inp.oninput=()=>{S.licenses[sw]=parseInt(inp.value)||0;buildTable();};
+    wrap.appendChild(lbl);wrap.appendChild(inp);li.appendChild(wrap);
+  }
+  buildTable();
+}
+
+function buildTable(){
+  const swOrder=['한글 2018','한글 NEO','한글 2014','한글 2010'];
+  const swInData=new Set([...S.prev,...S.next].map(r=>r.sw));
+  const rows=swOrder.filter(s=>swInData.has(s)||S.licenses[s]);
+  let tLic=0,tDist=0;
+  let html=`<thead><tr><th style="text-align:left">구분</th><th>라이센스 수량</th><th>배포 수량 (이번달)</th><th>라이센스 여유분</th><th>전월 대비</th></tr></thead><tbody>`;
+  for(const sw of rows){
+    const lic=S.licenses[sw]||0;
+    const dist=S.next.filter(r=>r.sw===sw).length;
+    const prev=S.prev.filter(r=>r.sw===sw).length;
+    const surplus=lic-dist,delta=dist-prev;
+    tLic+=lic;tDist+=dist;
+    const sc=surplus===0?`<span class="zero">-</span>`:surplus>0?`<span class="pos">+${surplus}</span>`:`<span class="neg">${surplus}</span>`;
+    const dc=delta===0?`<span class="zero">-</span>`:delta>0?`<span class="pos">▲${delta}</span>`:`<span class="neg">▼${Math.abs(delta)}</span>`;
+    html+=`<tr><td>${sw}</td><td>${lic}</td><td>${dist}</td><td>${sc}</td><td>${dc}</td></tr>`;
+  }
+  const ts=tLic-tDist;
+  html+=`</tbody><tfoot><tr class="total"><td>계</td><td>${tLic}</td><td>${tDist}</td><td>${ts>0?'+'+ts:ts||'-'}</td><td>-</td></tr></tfoot>`;
+  document.getElementById('summary-table').innerHTML=html;
+}
+
+function switchTab(name){
+  const names=['diff','full','summary'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',names[i]===name));
+}
+
+function reset(){
+  document.getElementById('prev').value='';
+  document.getElementById('next').value='';
+  document.getElementById('results').style.display='none';
+  S={activeSW:'ALL',fullSW:'ALL',licenses:{...LIC_DEF},added:[],removed:[],kept:[],prev:[],next:[],swList:[]};
+}
+
+const SP=`성명\t부서\t소프트웨어명\t수량
+홍길동(000001)\tOO팀\t한글 2018\t1
+홍길순(000002)\tOO팀\t한글 2018\t1
+홍길남(000003)\tXX팀\t한글 2014\t1
+김철수(000004)\tXX팀\t한글 2014\t1
+김영희(000005)\tYY팀\t한글 2010\t1
+이민준(000006)\tYY팀\t한글 2010\t1
+이수진(000007)\tZZ팀\t한글 2010\t1
+박준호(000008)\tZZ팀\t한글 2010\t1`;
+const SN=`성명\t부서\t소프트웨어명\t수량
+홍길동(000001)\tOO팀\t한글 2018\t1
+홍길순(000002)\tOO팀\t한글 2018\t1
+홍길남(000003)\tXX팀\t한글 2014\t1
+김영희(000005)\tYY팀\t한글 2010\t1
+이민준(000006)\tYY팀\t한글 2010\t1
+이수진(000007)\tZZ팀\t한글 2010\t1
+박준호(000008)\tZZ팀\t한글 2010\t1
+최지훈(000009)\tAA팀\t한글 2010\t1`;
+function loadSample(){document.getElementById('prev').value=SP;document.getElementById('next').value=SN;compare();}
+</script>
+</body>
+</html>
